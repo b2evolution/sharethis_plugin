@@ -38,17 +38,10 @@ class socialshare_sharethis extends sharethis_pluginAddOn
 
 		//TODO: allow per post-type inclusion
 
-		$title = "'" . $item->dget( 'title', 'htmlattr' ) . "'";
-		$url   = "'" . $item->get_permanent_url() . "'";
+		$title = $item->dget( 'title', 'htmlattr' );
+		$url   = $item->get_permanent_url();
 
-		$content .=  "\n".'<div class="sharethis">
-							<script type="text/javascript" language="javascript">
-								SHARETHIS.addEntry( {
-									title : '. $title .',
-									url   : '. $url   .'}, 
-									{ button: true }
-								) ;
-							</script></div>' . "\n";
+		$content .= "\n".'<div class="st_sharethis" displayText="ShareThis" st_url="'.$url.'" st_title="'.$title.'" style="margin-bottom:5px;"></div>' . "\n";
 		return true;
 	}
 
@@ -57,11 +50,9 @@ class socialshare_sharethis extends sharethis_pluginAddOn
 
 	function SkinBeginHtmlHead( & $params )
 	{
-		$url = "http://w.sharethis.com/widget/?tabs=web%2Cpost%2Cemail&amp;charset=utf-8&amp;services=";
-		$url .= urlencode( $this->coll_settings['sharethis_services'] ) ;
-		$url .= '&amp;style=default&amp;publisher=' . $this->coll_settings['sharethis_publisher_id'];
-		
+		$url = 'http://w.sharethis.com/button/buttons.js';
 		require_js( $url );
+		add_headline('<script type="text/javascript">stLight.options({publisher:"'.$this->coll_settings['sharethis_publisher_id'].'",onhover: false});</script>');
 		return true;
 	}
 
