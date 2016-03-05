@@ -10,7 +10,7 @@ class sharethis_plugin extends Plugin
 	var $name = 'sharethis';
 	var $code = 'evo_sharethis';
 	var $priority = 50;
-	var $version = '1.0';
+	var $version = '1.5';
 	var $author = 'The b2evo Group';
 	var $group = 'rendering';
 
