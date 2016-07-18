@@ -10,14 +10,31 @@ class sharethis_plugin extends Plugin
 	var $name = 'sharethis';
 	var $code = 'evo_sharethis';
 	var $priority = 50;
-	var $version = '1.5';
+	var $version = '1.6';
 	var $author = 'The b2evo Group';
 	var $group = 'rendering';
 
-	var $plugin;
+    private $_supported_services = array(
+        'sharethis',
+        'facebook', 'twitter', 'email', 'pinterest', 'linkedin',
+        'googleplus', 'digg', 'stumbleupon', 'reddit', 'tumblr',
+        'adfty', 'allvoices', 'amazon_wishlist', 'arto', 'att',
+        'baidu', 'blinklist', 'blip', 'blogmarks', 'blogger',
+        'buddymarks', 'buffer', 'care2', 'chiq', 'citeulike',
+        'corkboard', 'dealsplus', 'delicious', 'diigo', 'dzone',
+        'edmodo', 'embed_ly', 'evernote', 'fark', 'fashiolista',
+        'flipboard', 'folkd', 'foodlve', 'fresqui', 'friendfeed',
+        'funp', 'fwisp', 'google', 'google_bmarks', 'google_reader',
+        'google_translate', 'hatena', 'instapaper', 'jumptags', 'kaboodle',
+        'linkagogo', 'livejournal', 'mail_ru', 'meneame', 'messenger',
+        'mister_wong', 'moshare', 'myspace', 'n4g', 'netlog',
+        'netvouz', 'newsvine', 'nujij', 'odnoklassniki', 'oknotizie',
+        'pocket', 'print', 'raise_your_voice', 'segnalo', 'sina',
+        'sonico', 'startaid', 'startlap', 'stumpedia', 'typepad',
+        'viadeo', 'virb', 'vkontakte', 'voxopolis', 'weheartit',
+        'wordpress', 'xerpi', 'xing', 'yammer',
+    );
 
-	var $available_addons;
-	var $enabled_addon;
 
 	/**
 	 * Init
@@ -27,119 +44,109 @@ class sharethis_plugin extends Plugin
 		$this->name = T_( 'ShareThis' );
 		$this->short_desc = T_('Share contents to your favorite social networks using the ShareThis service.');
 		$this->long_desc = T_('Share contents to your favorite social networks using the ShareThis service.');
-
-		$this->available_addons = $this->get_available_addons(true); // Get the available addons and load their code
 	}
 
 
-	function get_available_addons( $load = false )
-	{
-		require_once('addons/pluginaddon.class.php');
-
-		$available_addons = array();
-
-		$dir = dirname(__FILE__) . '/addons';
-		$dir_content = scandir($dir);
-		
-		foreach ( $dir_content as $element )
-		{
-			$subdir_name = $dir . '/' . $element;
-
-			if ( is_dir($subdir_name) )
-			{
-				$filepath = $subdir_name . '/' . $element . '.class.php';
-				if ( is_file($filepath) )
-				{
-					$available_addons[] = array($element, ucfirst($element));
-
-					if ( $load )
-					{
-						require_once($filepath);
-					}
-				}
-			}
-		}
-
-		return $available_addons;
-	}
-
-	
 	function get_coll_setting_definitions( & $params )
 	{
-		$default_params = array_merge( $params, array(
+		$default_params = array_merge(
+            $params,
+            array(
 				'default_post_rendering' => 'opt-out'
-			) );
+			)
+        );
 
 		$plugin_settings = array(
-							'sharethis_enabled' => array(
-									'label' => T_('Enabled'),
-									'type' => 'checkbox',
-									'note' => 'Is the plugin enabled for this collection?',
-								),
-							);
+            'sharethis_enabled' => array(
+                    'label' => T_('Enabled'),
+                    'type' => 'checkbox',
+                    'note' => 'Is the plugin enabled for this collection?',
+                ),
+            'sharethis_publisher_id' => array(
+                'label' => 'Sharethis ' . T_('Publisher ID'),
+                'size' => 70,
+                'defaultvalue' => '',
+                'size' => 36,
+                'maxlength' => 36,
+                'note' => T_( 'This is you publisher ID in the format &laquo;xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx&raquo;; which you can find in the code provided by ShareThis' ),
+                'valid_pattern' => '#\w{8}-(\w{4}-){3}\w{12}#'
+            ),
+            'sharethis_usechicklets' => array(
+                'label' => T_('Use chicklets'),
+                'type' => 'checkbox',
+            ),
+            'sharethis_iconsstyle' => array(
+                'label' => T_('Style'),
+                'type' => 'select',
+                'options' => array('standard' => T_('Standard'), 'large' => T_('Large'), 'button' => T_('Button')),
+                'defaultvalue' => 'standard'
 
-		return array_merge( $plugin_settings, socialshare_sharethis::get_coll_setting_definitions(), parent::get_coll_setting_definitions( $default_params ) ); 
+            ),
+            'sharethis_services' => array(
+                'label' => T_('Services'),
+                'type' => 'text',
+                'defaultvalue' => 'sharethis,twitter,facebook,pinterest,linkedin',
+                'size' => 100
+            ),
+        );
+
+		return array_merge( $plugin_settings, parent::get_coll_setting_definitions( $default_params ) );
 			
-	}
-
-
-	function call_method( $object, $method, & $params )
-	{
-		if( method_exists($object, $method) )
-		{
-			$object->$method( $params );
-		}
-	}
-
-
-	function get_coll_enabled_addon()
-	{
-		if( $this->status != 'enabled' )
-		{
-			return false;
-		}
-
-		global $Blog;
-
-		if( $this->get_coll_setting( 'sharethis_enabled', $Blog ) )
-		{
-			$this->enabled_addon = new socialshare_sharethis($this);
-
-			return true;
-		}
 	}
 
 
 	/** Plugin Hooks **/
 	function SkinBeginHtmlHead( & $params )
 	{
-		if ( $this->get_coll_enabled_addon( $params ) )
-		{ 	
-			$this->call_method( $this->enabled_addon, 'SkinBeginHtmlHead', $params );
-		}
+        global $Blog;
+
+        if ( $this->get_coll_setting( 'sharethis_enabled', $Blog ) )
+        {
+            $url = 'http://w.sharethis.com/button/buttons.js';
+            require_js( $url );
+            add_headline('<script type="text/javascript">stLight.options({publisher:"'.$this->get_coll_setting('sharethis_publisher_id', $Blog).'",onhover: false});</script>');
+        }
 	}
 
 	function RenderItemAsHtml( & $params )
 	{
-		if ( $this->get_coll_enabled_addon( $params ) )
-		{
-			$this->call_method( $this->enabled_addon, 'RenderItemAsHtml', $params );
-		}
-	}
+        global $Blog;
 
-	function RenderItemAsXml ( & $params )
-	{
-		if ( $this->get_coll_enabled_addon( $params ) )
-		{
-			$this->call_method( $this->enabled_addon, 'RenderItemAsXml', $params );
-		}
-	}
+        if ( $this->get_coll_setting( 'sharethis_enabled', $Blog ) )
+        {
+            $content = & $params['data'];
+            $item = & $params['Item'];
 
-	function ColorboxInit( & $params )
-	{
-		if ( $this->get_coll_enabled_addon( $params ) )
-		{
-			$this->call_method( $this->enabled_addon, 'ColorboxInit', $params );
-		}
+            //TODO: allow per post-type inclusion
+
+            $title = $item->dget( 'title', 'htmlattr' );
+            $url   = $item->get_permanent_url();
+            $icons_style = ( $this->get_coll_setting('sharethis_iconsstyle', $Blog) == 'standard' ) ? '' : '_' . $this->get_coll_setting('sharethis_iconsstyle', $Blog); // TODO: support custom images
+
+            if ( $this->get_coll_setting('sharethis_usechicklets', $Blog) )
+            {
+                $_selected_services = $this->get_coll_setting('sharethis_services', $Blog);
+                $services = ( ! empty( $_selected_services ) ) ? str_getcsv( $this->get_coll_setting('sharethis_services', $Blog), ',') : $this->_supported_services;
+
+                $content .= '<div>';
+                foreach ( $services as $service )
+                {
+                    $service = trim($service);
+                    if( in_array( $service, $this->_supported_services ) )
+                    {
+                        $displayText = ($icons_style == '_button') ? 'displayText="'.ucfirst($service).'"' : '';
+
+                        $content .= '<span class="st_'.$service.$icons_style.'" st_url="'.$url.'" st_title="'.$title.'" '.$displayText.'></span>';
+                    }
+                }
+                $content .= '</div>';
+            }
+            else
+            {
+                $content .= "\n".'<div class="st_sharethis" displayText="ShareThis" st_url="'.$url.'" st_title="'.$title.'" style="margin-bottom:5px;"></div>' . "\n";
+            }
+
+            return true;
+        }
 	}
 }
